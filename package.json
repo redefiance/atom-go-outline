@@ -1,0 +1,16 @@
+{
+  "name": "go-outline",
+  "main": "./lib/main",
+  "version": "0.0.0",
+  "description": "A short description of your package",
+  "repository": "https://github.com/atom/go-outline",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=0.174.0 <2.0.0"
+  },
+  "dependencies": {
+    "react": "latest",
+    "atom-resizable-panel": "git://github.com/redefiance/atom-resizable-panel.git",
+    "atom-tree-view": "git://github.com/redefiance/atom-tree-view.git"
+  }
+}

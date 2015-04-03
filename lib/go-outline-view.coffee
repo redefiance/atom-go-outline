@@ -10,7 +10,7 @@ class GoOutlineView extends TreeView
     @panel = new ResizablePanel item: this, position: 'left'
     @panel.width 200
 
-    @open '/home/dev/go/go-outline/testpkg/'
+    @open '/usr/lib/go/src/pkg/'
 
   open: (@path)->
     @focus()
@@ -19,21 +19,35 @@ class GoOutlineView extends TreeView
     stderr = (output)=>
       atom.notifications.addError output
 
-    fileentry = null
+    pe = null
+    fe = null
     stdout = (output)=>
+      # console.log output
       for decl in output.split '\n'
-        continue if decl is ""
-        if decl.startsWith 'file'
-          s = decl.split('/')
-          fileentry = new TreeEntryView
+        continue if decl is ''
+        if decl.startsWith 'pkg'
+          pe = new TreeEntryView
+            text: decl.substring 4
+            icon: 'icon-file-directory'
+          @addEntry pe
+        else if decl.startsWith 'file'
+          s = decl.split '/'
+          fe = new TreeEntryView
             text: s[s.length-1]
             icon: 'icon-file-text'
-          @addEntry fileentry
+          pe.addEntry fe
         else
-          fileentry.addEntry new TreeEntryView
-            text: decl
+          e = new TreeEntryView text: decl
+          e.addClass switch
+            when decl.startsWith 'var'   then 'text-info'
+            when decl.startsWith 'func'  then 'text-success'
+            when decl.startsWith 'type'  then 'text-warning'
+            when decl.startsWith 'const' then 'text-error'
+          fe.addEntry e
+
+
 
     # command = atom.config.get 'go-find-references.path'
     command = 'go-outline'
-    args = ['-path', path]
+    args = ['-path', path, '-public']
     process = new BufferedProcess({command, args, stdout, stderr, exit})

@@ -1,53 +1,70 @@
 {BufferedProcess} = require 'atom'
 {ResizablePanel} = require 'atom-resizable-panel'
 {TreeEntryView, TreeView} = require 'atom-tree-view'
+path = require 'path'
 
 module.exports =
 class GoOutlineView extends TreeView
   initialize: ->
-    super
+    super()
 
-    @panel = new ResizablePanel item: this, position: 'left'
+    @panel = new ResizablePanel item: this, position: 'right'
     @panel.width 200
 
-    @open '/usr/lib/go/src/pkg/'
+    @entries = {'.': @}
+    @open '/home/stargazer/dev/goroot/src/pkg'
 
-  open: (@path)->
+  recordEntry: (relpath, entry)->
+    up = path.dirname relpath
+    unless @entries[up]?
+      @recordEntry up, new TreeEntryView
+        text: up
+        icon: 'icon-file-directory'
+    @entries[up].addEntry entry
+    @entries[relpath] = entry
+
+  open: (@dirpath)->
     @focus()
 
     exit = (code)=>
     stderr = (output)=>
       atom.notifications.addError output
 
-    pe = null
-    fe = null
+    cur_file = null
     stdout = (output)=>
-      # console.log output
       for decl in output.split '\n'
-        continue if decl is ''
-        if decl.startsWith 'pkg'
-          pe = new TreeEntryView
-            text: decl.substring 4
-            icon: 'icon-file-directory'
-          @addEntry pe
-        else if decl.startsWith 'file'
-          s = decl.split '/'
-          fe = new TreeEntryView
-            text: s[s.length-1]
-            icon: 'icon-file-text'
-          pe.addEntry fe
-        else
-          e = new TreeEntryView text: decl
-          e.addClass switch
-            when decl.startsWith 'var'   then 'text-info'
-            when decl.startsWith 'func'  then 'text-success'
-            when decl.startsWith 'type'  then 'text-warning'
-            when decl.startsWith 'const' then 'text-error'
-          fe.addEntry e
+        entrypath = null
+        entry = null
+        switch
+          when decl is ''
+            continue
+          when decl.startsWith 'pkg'
+            p = decl.substring 4
+            entrypath = path.relative @dirpath, p
+            entry = new TreeEntryView
+              text: path.basename p
+              icon: 'icon-file-directory'
+          when decl.startsWith 'file'
+            p = decl.substring 5
+            entrypath = path.relative @dirpath, p
+            entry = new TreeEntryView
+              text: path.basename p
+              icon: 'icon-file-text'
+            cur_file = entrypath
+          else
+            s = decl.split ':'
+            f = (file, line)->-> atom.workspace.open file, initialLine: line
+            entrypath = path.join cur_file, s[0]
+            entry = new TreeEntryView
+              text: s[0]
+              confirm: f cur_file, parseInt(s[1])-1
+            entry.addClass switch
+              when decl.startsWith 'var'   then 'text-info'
+              when decl.startsWith 'func'  then 'text-success'
+              when decl.startsWith 'const' then 'text-warning'
+              when decl.startsWith 'type'  then 'text-error'
+        @recordEntry entrypath, entry
 
-
-
-    # command = atom.config.get 'go-find-references.path'
-    command = 'go-outline'
-    args = ['-path', path, '-public']
+    command = atom.config.get 'go-outline.path'
+    args = ['-path', dirpath, '-public']
     process = new BufferedProcess({command, args, stdout, stderr, exit})

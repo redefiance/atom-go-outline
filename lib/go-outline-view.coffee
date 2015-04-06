@@ -21,6 +21,7 @@ class GoOutlineView extends TreeView
         text: up
         icon: 'icon-file-directory'
     @entries[up].addEntry entry
+    @entries[up].collapse()
     @entries[relpath] = entry
 
   open: (@dirpath)->

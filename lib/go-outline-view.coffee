@@ -12,9 +12,10 @@ class GoOutlineView extends TreeView
     @panel.width 200
 
     @entries = {'.': @}
-    @open '/home/stargazer/dev/goroot/src/pkg'
+    @open '/home/stargazer/dev/goroot/src/pkg/errors'
 
   recordEntry: (relpath, entry)->
+    return if relpath is ''
     up = path.dirname relpath
     unless @entries[up]?
       @recordEntry up, new TreeEntryView
@@ -54,11 +55,11 @@ class GoOutlineView extends TreeView
             cur_file = entrypath
           else
             s = decl.split ':'
-            f = (file, line)->-> atom.workspace.open file, initialLine: line
             entrypath = path.join cur_file, s[0]
-            entry = new TreeEntryView
-              text: s[0]
-              confirm: f cur_file, parseInt(s[1])-1
+            entry = new TreeEntryView text: s[0]
+            entry.lineFrom = parseInt(s[1])-1
+            entry.lineTo = parseInt(s[2])-1
+            entry.confirm = -> atom.workspace.open file, initialLine: entry.lineFrom
             entry.addClass switch
               when decl.startsWith 'var'   then 'text-info'
               when decl.startsWith 'func'  then 'text-success'
